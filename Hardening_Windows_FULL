@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Continue'
 
 # ==============================================================================
-# Blockbit Hardening - Windows 10/11
-# Execucao remota via Blockbit XDR / Wazuh
+# Hardening - Windows 10/11
+# Execucao local ou remota
 # Log local apenas
 # ==============================================================================
 
@@ -14,12 +14,12 @@ $global:FailedItems = New-Object System.Collections.Generic.List[string]
 $global:SkippedItems = New-Object System.Collections.Generic.List[string]
 
 $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-$logDir = Join-Path $env:SystemRoot 'Temp'
+$logDir = 'C:\ProgramData\Hardening'
 if (-not (Test-Path $logDir)) {
     New-Item -Path $logDir -ItemType Directory -Force | Out-Null
 }
 
-$global:RunLog = Join-Path $logDir "Blockbit_Hardening_win10_11_$timestamp.log"
+$global:RunLog = Join-Path $logDir "Hardening_$timestamp.log"
 New-Item -Path $global:RunLog -ItemType File -Force | Out-Null
 
 function Write-RunLog {
@@ -31,6 +31,9 @@ function Write-RunLog {
 
     $line = "[{0}] [{1}] [{2}] {3}" -f (Get-Date -Format 'HH:mm:ss'), $Level, $Id, $Message
     Add-Content -Path $global:RunLog -Value $line -Encoding UTF8
+    if ($Host.Name -eq 'ConsoleHost') {
+        Write-Host $line
+    }
 
     switch ($Level.ToUpperInvariant()) {
         'OK'   { $global:CountOK++ }
@@ -231,12 +234,12 @@ function Enable-DefenderPreference {
 
 function Set-MarkerIfSuccess {
     try {
-        Ensure-RegistryKey -Path 'HKLM:\Software\Blockbit\Hardening'
-        $existing = Get-ItemProperty -Path 'HKLM:\Software\Blockbit\Hardening' -Name 'FullApplied' -ErrorAction SilentlyContinue
+        Ensure-RegistryKey -Path 'HKLM:\Software\Hardening'
+        $existing = Get-ItemProperty -Path 'HKLM:\Software\Hardening' -Name 'FullApplied' -ErrorAction SilentlyContinue
         if ($null -ne $existing) {
-            Set-ItemProperty -Path 'HKLM:\Software\Blockbit\Hardening' -Name 'FullApplied' -Value 1 -Type DWord -ErrorAction Stop
+            Set-ItemProperty -Path 'HKLM:\Software\Hardening' -Name 'FullApplied' -Value 1 -Type DWord -ErrorAction Stop
         } else {
-            New-ItemProperty -Path 'HKLM:\Software\Blockbit\Hardening' -Name 'FullApplied' -Value 1 -PropertyType DWord -Force -ErrorAction Stop | Out-Null
+            New-ItemProperty -Path 'HKLM:\Software\Hardening' -Name 'FullApplied' -Value 1 -PropertyType DWord -Force -ErrorAction Stop | Out-Null
         }
         Write-RunLog 'OK' 'hardening_marker' 'marker FullApplied=1 gravado com sucesso'
     } catch {
@@ -244,7 +247,7 @@ function Set-MarkerIfSuccess {
     }
 }
 
-Write-RunLog 'INFO' 'iniciando' 'Blockbit Hardening - Windows 10/11'
+Write-RunLog 'INFO' 'iniciando' 'Hardening - Windows 10/11'
 Write-RunLog 'INFO' 'iniciando' "Log detalhado: $global:RunLog"
 
 if (-not (Test-Administrator)) {
@@ -436,7 +439,7 @@ Write-RunLog 'INFO' 'finalizando' 'gerando sumario final'
 $total = $global:CountOK + $global:CountFail + $global:CountSkip
 Add-Content -Path $global:RunLog -Value ''
 Add-Content -Path $global:RunLog -Value '============================================================'
-Add-Content -Path $global:RunLog -Value ' SUMARIO DO HARDENING BLOCKBIT WIN10/11'
+Add-Content -Path $global:RunLog -Value ' SUMARIO DO HARDENING WIN10/11'
 Add-Content -Path $global:RunLog -Value (" Timestamp : {0}" -f $timestamp)
 Add-Content -Path $global:RunLog -Value (" Host      : {0}" -f $env:COMPUTERNAME)
 Add-Content -Path $global:RunLog -Value (" SO        : {0} (Build {1})" -f $caption, $build)
@@ -454,6 +457,25 @@ if ($global:SkippedItems.Count -gt 0) {
     Add-Content -Path $global:RunLog -Value (' ITENS IGNORADOS: ' + ($global:SkippedItems -join ', '))
 }
 Add-Content -Path $global:RunLog -Value '============================================================'
+
+if ($Host.Name -eq 'ConsoleHost') {
+    Write-Host ''
+    Write-Host '============================================================'
+    Write-Host ' RESUMO DO HARDENING WIN10/11'
+    Write-Host (' Log       : {0}' -f $global:RunLog)
+    Write-Host (' Total     : {0}' -f $total)
+    Write-Host (' OK        : {0}' -f $global:CountOK)
+    Write-Host (' FAIL      : {0}' -f $global:CountFail)
+    Write-Host (' SKIP      : {0}' -f $global:CountSkip)
+    if ($global:FailedItems.Count -gt 0) {
+        Write-Host (' Falhas    : {0}' -f ($global:FailedItems -join ', '))
+    }
+    if ($global:SkippedItems.Count -gt 0) {
+        Write-Host (' Ignorados : {0}' -f ($global:SkippedItems -join ', '))
+    }
+    Write-Host '============================================================'
+    [void](Read-Host 'Pressione ENTER para sair')
+}
 
 if ($global:CountFail -eq 0) {
     Set-MarkerIfSuccess
