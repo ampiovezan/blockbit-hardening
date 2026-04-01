@@ -1,16 +1,16 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-set "WORKDIR=%ProgramData%\Blockbit"
-set "PS1=%WORKDIR%\Blockbit_Hardening_win10_11.ps1"
-set "LOG=%WORKDIR%\Blockbit_Hardening_win10_11.log"
-set "URL=https://raw.githubusercontent.com/ampiovezan/blockbit-hardening/refs/heads/main/Blockbit_Hardening_win10_11.ps1"
+set "WORKDIR=%ProgramData%\Hardening"
+set "PS1=%WORKDIR%\Hardening_Windows_FULL.ps1"
+set "LOG=%WORKDIR%\Hardening_Windows_FULL_log.log"
+set "URL=https://raw.githubusercontent.com/ampiovezan/blockbit-hardening/refs/heads/main/Hardening_Windows_FULL"
 set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 
 if not exist "%WORKDIR%" md "%WORKDIR%" >nul 2>&1
 
 echo ================================================== > "%LOG%"
-echo Blockbit Hardening Downloader/Launcher >> "%LOG%"
+echo Hardening Downloader/Launcher >> "%LOG%"
 echo Data: %date% %time% >> "%LOG%"
 echo Host: %COMPUTERNAME% >> "%LOG%"
 echo User: %username% >> "%LOG%"
@@ -22,6 +22,8 @@ if not exist "%PS_EXE%" (
     echo [BAT] PowerShell nao encontrado em %PS_EXE% >> "%LOG%"
     exit /b 1
 )
+
+if exist "%PS1%" del /f /q "%PS1%" >nul 2>&1
 
 echo [BAT] Baixando PS1... >> "%LOG%"
 "%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -Command ^
